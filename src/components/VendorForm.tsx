@@ -10,6 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { ScrollReveal } from "@/components/ScrollReveal";
 import { toast } from "@/hooks/use-toast";
 import { CheckCircle } from "lucide-react";
+import axios from "axios";
 
 const schema = z.object({
   vendorName: z.string().trim().min(1, "Required").max(100),
@@ -24,15 +25,55 @@ type FormData = z.infer<typeof schema>;
 
 const VendorForm = () => {
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { vendorName: "", businessName: "", serviceType: "", phone: "", email: "", instagram: "" },
   });
 
-  const onSubmit = () => {
+  const onSubmit = async (data: FormData) => {
+  try {
+    setLoading(true);
+
+    const payload = {
+      vendor_name: data.vendorName,
+      business_name: data.businessName,
+      service_type: data.serviceType,
+      phone: data.phone,
+      email: data.email,
+      instagram_page: data.instagram,
+      amount: 20000 // 🔥 vendor payment
+    };
+
+    const res = await axios.post(
+      "https://influencers.digitacetechsolutions.com/api/vendors",
+      payload
+    );
+
+    console.log(res.data);
+
     setSubmitted(true);
-    toast({ title: "Vendor Registration Submitted! 🎉", description: "We'll contact you with next steps." });
-  };
+
+    toast({
+      title: "Vendor Registration Submitted! 🎉",
+      description: "Our team will contact you shortly.",
+    });
+
+    form.reset();
+
+  } catch (error: any) {
+    console.error(error);
+
+    toast({
+      title: "Submission Failed ❌",
+      description: error?.response?.data?.message || "Something went wrong",
+      variant: "destructive",
+    });
+
+  } finally {
+    setLoading(false);
+  }
+};
 
   if (submitted) {
     return (

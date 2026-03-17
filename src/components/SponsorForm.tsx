@@ -11,6 +11,15 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { ScrollReveal } from "@/components/ScrollReveal";
 import { toast } from "@/hooks/use-toast";
 import { CheckCircle } from "lucide-react";
+import axios from "axios";
+
+
+const SPONSOR_PRICING: Record<string, number> = {
+  "Title Sponsor": 300000,      // ₹3L
+  "Gold Sponsor": 150000,       // ₹1.5L
+  "Category Sponsor": 50000,    // ₹50K
+  "Supporting Sponsor": 25000,  // ₹25K
+};
 
 const schema = z.object({
   companyName: z.string().trim().min(1, "Required").max(200),
@@ -27,6 +36,7 @@ type FormData = z.infer<typeof schema>;
 
 const SponsorForm = () => {
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -35,10 +45,53 @@ const SponsorForm = () => {
     },
   });
 
-  const onSubmit = () => {
+  const onSubmit = async (data: FormData) => {
+  try {
+    setLoading(true);
+
+    const selectedAmount = SPONSOR_PRICING[data.sponsorshipType] || 0;
+
+    const payload = {
+      company_name: data.companyName,
+      contact_person: data.contactPerson,
+      email: data.email,
+      phone: data.phone,
+      website: data.website,
+      industry: data.industry,
+      sponsorship_type: data.sponsorshipType,
+      message: data.message,
+      amount: selectedAmount // 🔥 sponsor payment amount
+    };
+
+    const res = await axios.post(
+      "https://influencers.digitacetechsolutions.com/api/sponsors",
+      payload
+    );
+
+    console.log(res.data);
+
     setSubmitted(true);
-    toast({ title: "Sponsor Registration Submitted! 🎉", description: "Our team will contact you shortly." });
-  };
+
+    toast({
+      title: "Sponsor Registration Submitted! 🎉",
+      description: "Our team will contact you shortly.",
+    });
+
+    form.reset();
+
+  } catch (error: any) {
+    console.error(error);
+
+    toast({
+      title: "Submission Failed ❌",
+      description: error?.response?.data?.message || "Something went wrong",
+      variant: "destructive",
+    });
+
+  } finally {
+    setLoading(false);
+  }
+};
 
   if (submitted) {
     return (
@@ -98,9 +151,14 @@ const SponsorForm = () => {
             <FormField control={form.control} name="message" render={({ field }) => (
               <FormItem><FormLabel>Message / Sponsorship Interest (Optional)</FormLabel><FormControl><Textarea placeholder="Tell us about your goals..." rows={4} {...field} /></FormControl><FormMessage /></FormItem>
             )} />
-            <Button type="submit" size="lg" className="w-full gradient-gold text-primary-foreground font-semibold text-base py-6 rounded-full">
-              Submit Sponsor Registration
-            </Button>
+            <Button
+  type="submit"
+  size="lg"
+  disabled={loading}
+  className="w-full gradient-gold text-primary-foreground font-semibold text-base py-6 rounded-full"
+>
+  {loading ? "Submitting..." : "Submit Sponsor Registration"}
+</Button>
           </form>
         </Form>
       </div>

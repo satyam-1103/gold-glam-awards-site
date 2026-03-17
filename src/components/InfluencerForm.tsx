@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import axios from "axios";
 import { ALL_CATEGORIES, TIERS } from "@/lib/categories";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -37,10 +38,54 @@ const InfluencerForm = () => {
       otherLinks: "", followerCount: "", category: "", tier: "", bio: "", whyWin: "",
     },
   });
+  const [loading, setLoading] = useState(false);
 
-  const onSubmit = (data: FormData) => {
+  const onSubmit = async (data: FormData) => {
+    try {
+      
+      setLoading(true);
+
+    const payload = {
+      full_name: data.fullName,
+      email: data.email,
+      phone: data.phone,
+      city: data.city,
+      instagram_link: data.instagram,
+      other_social_links: data.otherLinks,
+      follower_count: data.followerCount,
+      category: data.category,
+      influencer_tier: data.tier,
+      bio: data.bio,
+      award_reason: data.whyWin,
+      amount: 2000 // 🔥 important for payment table
+    };
+
+    const res = await axios.post(
+      "https://influencers.digitacetechsolutions.com/api/influencers",
+      payload
+    );
+
+    console.log(res.data);
+
     setSubmitted(true);
+
+
     toast({ title: "Nomination Submitted! 🎉", description: "We'll review your nomination and get back to you soon." });
+    form.reset();
+  
+    } catch (error) {
+      console.error(error);
+
+    toast({
+      title: "Submission Failed ❌",
+      description: error?.response?.data?.message || "Something went wrong",
+      variant: "destructive",
+    });
+    }
+    finally {
+      setLoading(false);
+    }
+    
   };
 
   if (submitted) {
@@ -125,8 +170,8 @@ const InfluencerForm = () => {
               <FormItem><FormLabel>Why should you win this award?</FormLabel><FormControl><Textarea placeholder="Share your achievements and impact..." rows={4} {...field} /></FormControl><FormMessage /></FormItem>
             )} />
 
-            <Button type="submit" size="lg" className="w-full gradient-gold text-primary-foreground font-semibold text-base py-6 rounded-full">
-              Nominate Yourself
+            <Button type="submit" disabled={loading}  size="lg" className="w-full gradient-gold text-primary-foreground font-semibold text-base py-6 rounded-full">
+              {loading ? "Submitting..." : "Nominate Yourself"}
             </Button>
           </form>
         </Form>
