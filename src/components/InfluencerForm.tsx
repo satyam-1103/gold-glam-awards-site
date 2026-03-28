@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import axios from "axios";
+import { db } from "@/lib/firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { ScrollReveal } from "@/components/ScrollReveal";
 
 import { Input } from "@/components/ui/input";
@@ -66,6 +67,8 @@ const steps = [
 // ================= COMPONENT =================
 export default function InfluencerMultiStepForm() {
   const [step, setStep] = useState(0);
+  const [isSubmitted, setSubmitted] = useState(false);
+  const [isLoading, setLoading] = useState(false);
   const totalSteps = steps.length;
 
   const form = useForm<FormData>({
@@ -106,6 +109,8 @@ export default function InfluencerMultiStepForm() {
   // ================= SUBMIT =================
   const onSubmit = async (data: FormData) => {
     try {
+      setLoading(true);
+
       const payload = {
         full_name: data.fullName,
         email: data.email,
@@ -118,7 +123,7 @@ export default function InfluencerMultiStepForm() {
         niche: data.niche,
 
         worked_with_brands: data.workedWithBrands,
-        brand_details: data.brandDetails,
+        brand_details: data.brandDetails || "",
 
         award_category: data.awardCategory,
         why_win: data.whyWin,
@@ -128,29 +133,34 @@ export default function InfluencerMultiStepForm() {
 
         amount: 2000,
 
-        is_referred: data.is_referred,
-        referal_code: data.referal_code,
+        is_referred: Boolean(data.is_referred),
+        referal_code: data.referal_code || "",
+        created_at: serverTimestamp()
       };
 
-      await axios.post(
-        "https://influencers.digitacetechsolutions.com/api/influencers",
-        payload
-      );
+      const docRef = await addDoc(collection(db, "influencers"), payload);
+      console.log("Document written with ID: ", docRef.id);
 
-    console.log(res.data);
-
-    setSubmitted(true);
+      setSubmitted(true);
 
 
-    toast({ title: "Nomination Submitted! 🎉", description: "We'll review your nomination and get back to you soon." });
-    form.reset();
+    toast({ title: "Nomination Submitted! 🎉", description: "Redirecting you to the payment page..." });
+    
+    // Redirect to Razorpay payment link
+    // We pass email, contact, and the Firestore document ID to help you track exactly who paid in Razorpay
+    const paymentUrl = new URL("https://rzp.io/rzp/pWlD6Xb");
+    paymentUrl.searchParams.append("email", data.email);
+    paymentUrl.searchParams.append("contact", data.phone);
+    paymentUrl.searchParams.append("notes[firestore_id]", docRef.id);
+    
+    window.location.href = paymentUrl.toString();
   
     } catch (error) {
       console.error(error);
 
     toast({
       title: "Submission Failed ❌",
-      description: error?.response?.data?.message || "Something went wrong",
+      description: error instanceof Error ? error.message : "Something went wrong",
       variant: "destructive",
     });
     }
