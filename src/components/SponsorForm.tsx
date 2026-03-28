@@ -68,7 +68,7 @@ const SponsorForm = () => {
       payload
     );
 
-    console.log(res.data);
+    // console.log(res.data);
 
     setSubmitted(true);
 

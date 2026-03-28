@@ -137,20 +137,25 @@ export default function InfluencerMultiStepForm() {
         payload
       );
 
-      toast({
-        title: "Success 🎉",
-        description: "Application submitted successfully"
-      });
+    console.log(res.data);
 
-      form.reset();
-      setStep(0);
+    setSubmitted(true);
 
-    } catch (err: any) {
-      toast({
-        title: "Error ❌",
-        description: err?.response?.data?.message || "Something went wrong",
-        variant: "destructive"
-      });
+
+    toast({ title: "Nomination Submitted! 🎉", description: "We'll review your nomination and get back to you soon." });
+    form.reset();
+  
+    } catch (error) {
+      console.error(error);
+
+    toast({
+      title: "Submission Failed ❌",
+      description: error?.response?.data?.message || "Something went wrong",
+      variant: "destructive",
+    });
+    }
+    finally {
+      setLoading(false);
     }
   };
 
