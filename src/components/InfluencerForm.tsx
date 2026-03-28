@@ -3,181 +3,447 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import axios from "axios";
-import { ALL_CATEGORIES, TIERS } from "@/lib/categories";
+import { ScrollReveal } from "@/components/ScrollReveal";
+
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { ScrollReveal } from "@/components/ScrollReveal";
+import {
+  Select, SelectContent, SelectItem,
+  SelectTrigger, SelectValue
+} from "@/components/ui/select";
+import {
+  Form, FormControl, FormField,
+  FormItem, FormLabel, FormMessage
+} from "@/components/ui/form";
 import { toast } from "@/hooks/use-toast";
-import { CheckCircle } from "lucide-react";
 
+// ================= SCHEMA =================
 const schema = z.object({
-  fullName: z.string().trim().min(1, "Required").max(100),
-  email: z.string().trim().email("Invalid email").max(255),
-  phone: z.string().trim().min(10, "Invalid phone").max(15),
-  city: z.string().trim().min(1, "Required").max(100),
-  instagram: z.string().trim().url("Enter a valid URL").max(500),
-  otherLinks: z.string().max(500).optional(),
-  followerCount: z.string().trim().min(1, "Required").max(20),
-  category: z.string().min(1, "Select a category"),
-  tier: z.string().min(1, "Select a tier"),
-  bio: z.string().trim().max(500).optional(),
-  whyWin: z.string().trim().min(10, "Tell us why you deserve this").max(1000),
+  fullName: z.string({error: "Required Full Name"}).min(1, "Required Full Name" ),
+  email: z.string({error: "Invalid Email ID"}).email(),
+  phone: z.string({error: "Invalid Phone Number"}).min(10),
+  city: z.string({error: "Required City Name"}).min(1),
+
+  platform: z.string({error: "Required Platform"}).min(1),
+  profileLink: z.string().url(),
+  followerRange: z.string().min(1),
+  niche: z.string().min(1),
+
+  workedWithBrands: z.string().min(1),
+  brandDetails: z.string().optional(),
+
+  awardCategory: z.string({error: "Required Award Category"}).min(1),
+
+  whyWin: z.string().min(10),
+
+  feeConsent: z.string({error: "Required Fee Consent"}).min(1),
+
+  consent: z.boolean().refine(v => v === true, {
+    message: "Required"
+  }),
+
+  is_referred: z.boolean().optional(),
+  referal_code: z.string().optional(),
+}).refine((data) => !data.is_referred || (data.referal_code && data.referal_code.trim().length > 0), {
+  message: "Referral code is required when referrals selected",
+  path: ["referal_code"]
 });
 
 type FormData = z.infer<typeof schema>;
 
-const InfluencerForm = () => {
-  const [submitted, setSubmitted] = useState(false);
+// ================= STEP CONFIG =================
+const steps = [
+  ["fullName", "email", "phone", "city"],
+  ["platform", "profileLink", "followerRange", "niche"],
+  ["workedWithBrands"],
+  ["awardCategory"],
+  ["whyWin"],
+  ["feeConsent", "consent"],
+  ["is_referred", "referal_code"]
+];
+
+// ================= COMPONENT =================
+export default function InfluencerMultiStepForm() {
+  const [step, setStep] = useState(0);
+  const totalSteps = steps.length;
+
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
+    mode: "onChange",
     defaultValues: {
-      fullName: "", email: "", phone: "", city: "", instagram: "",
-      otherLinks: "", followerCount: "", category: "", tier: "", bio: "", whyWin: "",
-    },
+      workedWithBrands: "No",
+      is_referred: false
+    }
   });
-  const [loading, setLoading] = useState(false);
 
-  const onSubmit = async (data: FormData) => {
-    try {
-      
-      setLoading(true);
+  // ================= STEP VALIDATION =================
+  const nextStep = async () => {
+    const currentFields = steps[step];
+    const valid = await form.trigger(currentFields as any);
 
-    const payload = {
-      full_name: data.fullName,
-      email: data.email,
-      phone: data.phone,
-      city: data.city,
-      instagram_link: data.instagram,
-      other_social_links: data.otherLinks,
-      follower_count: data.followerCount,
-      category: data.category,
-      influencer_tier: data.tier,
-      bio: data.bio,
-      award_reason: data.whyWin,
-      amount: 2000 // 🔥 important for payment table
-    };
+    if (!valid) return;
 
-    const res = await axios.post(
-      "https://influencers.digitacetechsolutions.com/api/influencers",
-      payload
-    );
-
-    console.log(res.data);
-
-    setSubmitted(true);
-
-
-    toast({ title: "Nomination Submitted! 🎉", description: "We'll review your nomination and get back to you soon." });
-    form.reset();
-  
-    } catch (error) {
-      console.error(error);
-
-    toast({
-      title: "Submission Failed ❌",
-      description: error?.response?.data?.message || "Something went wrong",
-      variant: "destructive",
-    });
+    // extra condition for brands
+    if (
+      currentFields.includes("workedWithBrands") &&
+      form.getValues("workedWithBrands") === "Yes" &&
+      !form.getValues("brandDetails")
+    ) {
+      form.setError("brandDetails", { message: "Required" });
+      return;
     }
-    finally {
-      setLoading(false);
-    }
-    
+
+    setStep(prev => prev + 1);
+    // window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  if (submitted) {
-    return (
-      <section id="influencer-form" className="py-20 bg-background">
-        <div className="container mx-auto px-4 text-center">
-          <CheckCircle className="w-16 h-16 text-primary mx-auto mb-4" />
-          <h2 className="font-serif text-3xl font-bold text-foreground mb-2">Nomination Received!</h2>
-          <p className="text-muted-foreground">Thank you for your submission. We'll be in touch soon.</p>
-          <Button className="mt-6 gradient-gold text-primary-foreground" onClick={() => { setSubmitted(false); form.reset(); }}>
-            Submit Another
-          </Button>
-        </div>
-      </section>
-    );
-  }
+  const prevStep = () => {
+    setStep(prev => prev - 1);
+    // window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
+  // ================= SUBMIT =================
+  const onSubmit = async (data: FormData) => {
+    try {
+      const payload = {
+        full_name: data.fullName,
+        email: data.email,
+        phone: data.phone,
+        city: data.city,
+
+        platform: data.platform,
+        profile_link: data.profileLink,
+        follower_range: data.followerRange,
+        niche: data.niche,
+
+        worked_with_brands: data.workedWithBrands,
+        brand_details: data.brandDetails,
+
+        award_category: data.awardCategory,
+        why_win: data.whyWin,
+
+        fee_consent: data.feeConsent,
+        consent: data.consent,
+
+        amount: 2000,
+
+        is_referred: data.is_referred,
+        referal_code: data.referal_code,
+      };
+
+      await axios.post(
+        "https://influencers.digitacetechsolutions.com/api/influencers",
+        payload
+      );
+
+      toast({
+        title: "Success 🎉",
+        description: "Application submitted successfully"
+      });
+
+      form.reset();
+      setStep(0);
+
+    } catch (err: any) {
+      toast({
+        title: "Error ❌",
+        description: err?.response?.data?.message || "Something went wrong",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // ================= UI =================
   return (
-    <section id="influencer-form" className="py-20 bg-background">
-      <div className="container mx-auto px-4 max-w-2xl">
-        <ScrollReveal className="text-center mb-10">
-          <p className="text-primary font-sans uppercase tracking-widest text-sm mb-3">Nominate Yourself</p>
-          <h2 className="font-serif text-3xl md:text-4xl font-bold text-foreground">
-            Influencer <span className="gradient-gold-text">Registration</span>
-          </h2>
-        </ScrollReveal>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="glass-card rounded-2xl p-6 md:p-8 space-y-5">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <FormField control={form.control} name="fullName" render={({ field }) => (
-                <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="Your full name" {...field} /></FormControl><FormMessage /></FormItem>
-              )} />
-              <FormField control={form.control} name="email" render={({ field }) => (
-                <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="you@email.com" {...field} /></FormControl><FormMessage /></FormItem>
-              )} />
-              <FormField control={form.control} name="phone" render={({ field }) => (
-                <FormItem><FormLabel>Phone Number</FormLabel><FormControl><Input placeholder="Your phone number" {...field} /></FormControl><FormMessage /></FormItem>
-              )} />
-              <FormField control={form.control} name="city" render={({ field }) => (
-                <FormItem><FormLabel>City</FormLabel><FormControl><Input placeholder="Your city" {...field} /></FormControl><FormMessage /></FormItem>
-              )} />
-            </div>
+    
+    <div className="max-w-2xl mx-auto py-10">
 
-            <FormField control={form.control} name="instagram" render={({ field }) => (
-              <FormItem><FormLabel>Instagram Profile Link</FormLabel><FormControl><Input placeholder="https://instagram.com/yourprofile" {...field} /></FormControl><FormMessage /></FormItem>
-            )} />
-            <FormField control={form.control} name="otherLinks" render={({ field }) => (
-              <FormItem><FormLabel>Other Social Links (Optional)</FormLabel><FormControl><Input placeholder="YouTube, Twitter, etc." {...field} /></FormControl><FormMessage /></FormItem>
-            )} />
-            <FormField control={form.control} name="followerCount" render={({ field }) => (
-              <FormItem><FormLabel>Follower Count</FormLabel><FormControl><Input placeholder="e.g., 25K" {...field} /></FormControl><FormMessage /></FormItem>
-            )} />
+      <ScrollReveal className="text-center mb-10">
+                  <p className="text-primary font-sans uppercase tracking-widest text-sm mb-3">Nominate Yourself</p>
+                  <h2 className="font-serif text-3xl md:text-4xl font-bold text-foreground">
+                    Influencer <span className="gradient-gold-text">Registration</span>
+                  </h2>
+                </ScrollReveal>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <FormField control={form.control} name="category" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Select Category</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl><SelectTrigger><SelectValue placeholder="Choose category" /></SelectTrigger></FormControl>
-                    <SelectContent>{ALL_CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField control={form.control} name="tier" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Influencer Tier</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl><SelectTrigger><SelectValue placeholder="Choose tier" /></SelectTrigger></FormControl>
-                    <SelectContent>{TIERS.map(t => <SelectItem key={t.label} value={t.label}>{t.label} ({t.range})</SelectItem>)}</SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )} />
-            </div>
-
-            <FormField control={form.control} name="bio" render={({ field }) => (
-              <FormItem><FormLabel>Short Bio (Optional)</FormLabel><FormControl><Textarea placeholder="Tell us about yourself..." rows={3} {...field} /></FormControl><FormMessage /></FormItem>
-            )} />
-            <FormField control={form.control} name="whyWin" render={({ field }) => (
-              <FormItem><FormLabel>Why should you win this award?</FormLabel><FormControl><Textarea placeholder="Share your achievements and impact..." rows={4} {...field} /></FormControl><FormMessage /></FormItem>
-            )} />
-
-            <Button type="submit" disabled={loading}  size="lg" className="w-full gradient-gold text-primary-foreground font-semibold text-base py-6 rounded-full">
-              {loading ? "Submitting..." : "Nominate Yourself"}
-            </Button>
-          </form>
-        </Form>
+      {/* Progress */}
+      <div className="mb-6">
+        <div className="h-2 bg-gray-200 rounded">
+          <div
+            className="h-2 bg-amber-500 rounded transition-all"
+            style={{ width: `${((step + 1) / totalSteps) * 100}%` }}
+          />
+        </div>
+        <p className="text-sm mt-2">
+          Step {step + 1} of {totalSteps}
+        </p>
       </div>
-    </section>
-  );
-};
 
-export default InfluencerForm;
+      <Form {...form}>
+
+        
+        <form onSubmit={form.handleSubmit(onSubmit)} className=" glass-card rounded-2xl p-6 md:p-8 space-y-6">
+
+          {/* STEP 1 */}
+          {step === 0 && (
+            <>
+              <h3 className="font-semibold text-lg">Basic Details</h3>
+
+              <FormField name="fullName" control={form.control} render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Name</FormLabel>
+                  <FormControl><Input {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+              <FormField name="email" control={form.control} render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl><Input {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+              <FormField name="phone" control={form.control} render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Phone</FormLabel>
+                  <FormControl><Input {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+              <FormField name="city" control={form.control} render={({ field }) => (
+                <FormItem>
+                  <FormLabel>City</FormLabel>
+                  <FormControl><Input {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+            </>
+          )}
+
+          {/* STEP 2 */}
+          {step === 1 && (
+            <>
+              <h3 className="font-semibold text-lg">Social Media</h3>
+
+              <FormField name="platform" control={form.control} render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Platform</FormLabel>
+                  <Select onValueChange={field.onChange}>
+                    <FormControl>
+                      <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Instagram">Instagram</SelectItem>
+                      <SelectItem value="YouTube">YouTube</SelectItem>
+                      <SelectItem value="LinkedIn">LinkedIn</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+              <FormField name="profileLink" control={form.control} render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Profile Link</FormLabel>
+                  <FormControl><Input {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+              <FormField name="followerRange" control={form.control} render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Followers</FormLabel>
+                  <Select onValueChange={field.onChange}>
+                    <FormControl>
+                      <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="1K-10K">1K–10K</SelectItem>
+                      <SelectItem value="10K-50K">10K–50K</SelectItem>
+                      <SelectItem value="50K-100K">50K–100K</SelectItem>
+                      <SelectItem value="100K+">100K+</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+              <FormField name="niche" control={form.control} render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Niche</FormLabel>
+                  <FormControl><Input {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+            </>
+          )}
+
+          {/* STEP 3 */}
+          {step === 2 && (
+            <>
+              <h3 className="font-semibold text-lg">Content</h3>
+
+              <FormField name="workedWithBrands" control={form.control} render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Worked with brands?</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue="No">
+                    <FormControl>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Yes">Yes</SelectItem>
+                      <SelectItem value="No">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+              {form.watch("workedWithBrands") === "Yes" && (
+                <FormField name="brandDetails" control={form.control} render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Brand Details</FormLabel>
+                    <FormControl><Textarea {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              )}
+            </>
+          )}
+
+          {/* STEP 4 */}
+          {step === 3 && (
+            <>
+              <h3 className="font-semibold text-lg">Award</h3>
+
+              <FormField name="awardCategory" control={form.control} render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Category</FormLabel>
+                  <Select onValueChange={field.onChange}>
+                    <FormControl>
+                      <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Rising">Rising Influencer</SelectItem>
+                      <SelectItem value="Travel">Travel</SelectItem>
+                      <SelectItem value="Fashion">Fashion</SelectItem>
+                      <SelectItem value="Business">Business</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
+            </>
+          )}
+
+          {/* STEP 5 */}
+          {step === 4 && (
+            <>
+              <h3 className="font-semibold text-lg">Why You?</h3>
+
+              <FormField name="whyWin" control={form.control} render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Why should you win?</FormLabel>
+                  <FormControl><Textarea {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+            </>
+          )}
+
+          {/* STEP 6 */}
+          {step === 5 && (
+            <>
+              <h3 className="font-semibold text-lg">Final</h3>
+
+              <FormField name="feeConsent" control={form.control} render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Agree to ₹2000 fee?</FormLabel>
+                  <Select onValueChange={field.onChange}>
+                    <FormControl>
+                      <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Yes">Yes</SelectItem>
+                      <SelectItem value="No">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+              <FormField name="consent" control={form.control} render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <input
+                      type="checkbox"
+                      checked={field.value}
+                      onChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormLabel>I agree to terms and conditions</FormLabel>
+                  <FormMessage />
+                </FormItem>
+              )} />
+            </>
+          )}
+
+          {step === 6 && (
+            <>
+              <h3 className="font-semibold text-lg">Referral</h3>
+
+              <FormField name="is_referred" control={form.control} render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(field.value)}
+                      onChange={(event) => field.onChange(event.target.checked)}
+                      className="mr-2"
+                    />
+                  </FormControl>
+                  <FormLabel>Do you have a referral code?</FormLabel>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+              {form.watch("is_referred") && (
+                <FormField name="referal_code" control={form.control} render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Referral Code</FormLabel>
+                    <FormControl><Input {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              )}
+            </>
+          )}
+
+          {/* BUTTONS */}
+          <div className="flex justify-between pt-4">
+            {step > 0 && (
+              <Button type="button" variant="outline" onClick={prevStep}>
+                Back
+              </Button>
+            )}
+
+            {step < totalSteps - 1 ? (
+              <Button type="button" onClick={nextStep}>
+                Next
+              </Button>
+            ) : (
+              <Button type="submit">
+                Submit
+              </Button>
+            )}
+          </div>
+
+        </form>
+      </Form>
+    </div>
+  );
+}
