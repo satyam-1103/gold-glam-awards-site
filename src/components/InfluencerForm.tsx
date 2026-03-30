@@ -155,12 +155,12 @@ export default function InfluencerMultiStepForm() {
 
       window.location.href = paymentUrl.toString();
 
-    } catch (error) {
-      console.error(error);
+    } catch (error: any) {
+      console.error("InfluencerForm submission error:", error);
 
       toast({
         title: "Submission Failed ❌",
-        description: error instanceof Error ? error.message : "Something went wrong",
+        description: error?.message || "Something went wrong. Please try again.",
         variant: "destructive",
       });
     }
@@ -440,18 +440,18 @@ export default function InfluencerMultiStepForm() {
             {/* BUTTONS */}
             <div className="flex justify-between pt-4">
               {step > 0 && (
-                <Button type="button" variant="outline" onClick={prevStep}>
+                <Button type="button" variant="outline" onClick={prevStep} disabled={isLoading}>
                   Back
                 </Button>
               )}
 
               {step < totalSteps - 1 ? (
-                <Button type="button" onClick={nextStep}>
+                <Button type="button" onClick={nextStep} disabled={isLoading}>
                   Next
                 </Button>
               ) : (
-                <Button type="submit">
-                  Submit
+                <Button type="submit" disabled={isLoading} size="lg" className="w-full gradient-gold text-primary-foreground font-semibold text-base py-6 rounded-full">
+                  {isLoading ? "Submitting..." : "Submit"}
                 </Button>
               )}
             </div>

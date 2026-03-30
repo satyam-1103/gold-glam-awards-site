@@ -65,7 +65,7 @@ const SponsorForm = () => {
     };
 
     const docRef = await addDoc(collection(db, "sponsors"), payload);
-    console.log("Document written with ID: ", docRef.id);
+    console.log("Sponsor document written with ID: ", docRef.id);
 
     setSubmitted(true);
 
@@ -77,11 +77,11 @@ const SponsorForm = () => {
     form.reset();
 
   } catch (error: any) {
-    console.error(error);
+    console.error("SponsorForm submission error:", error);
 
     toast({
       title: "Submission Failed ❌",
-      description: error instanceof Error ? error.message : "Something went wrong",
+      description: error?.message || "Something went wrong. Please try again.",
       variant: "destructive",
     });
 

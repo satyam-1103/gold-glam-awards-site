@@ -6,6 +6,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import PaymentProcess from "./pages/PaymentProcess.tsx";
+// Import Firebase to trigger initialization
+import "@/lib/firebase";
 
 const queryClient = new QueryClient();
 

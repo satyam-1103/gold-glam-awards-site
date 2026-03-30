@@ -48,7 +48,7 @@ const VendorForm = () => {
     };
 
     const docRef = await addDoc(collection(db, "vendors"), payload);
-    console.log("Document written with ID: ", docRef.id);
+    console.log("Vendor document written with ID: ", docRef.id);
 
     setSubmitted(true);
 
@@ -60,11 +60,11 @@ const VendorForm = () => {
     form.reset();
 
   } catch (error: any) {
-    console.error(error);
+    console.error("VendorForm submission error:", error);
 
     toast({
       title: "Submission Failed ❌",
-      description: error instanceof Error ? error.message : "Something went wrong",
+      description: error?.message || "Something went wrong. Please try again.",
       variant: "destructive",
     });
 
