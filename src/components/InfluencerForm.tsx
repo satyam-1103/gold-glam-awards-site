@@ -197,7 +197,7 @@ export default function InfluencerMultiStepForm() {
         <Form {...form} >
 
 
-          <form onSubmit={form.handleSubmit(onSubmit)} className=" glass-card rounded-2xl p-6 md:p-8 space-y-6">
+          <form onSubmit={(e) => {e.preventDefault()}} className=" glass-card rounded-2xl p-6 md:p-8 space-y-6">
 
             {/* STEP 1 */}
             {step === 0 && (
@@ -454,6 +454,7 @@ export default function InfluencerMultiStepForm() {
                   type="submit"
                   size="lg"
                   disabled={isSubmitting}
+                  onClick={form.handleSubmit(onSubmit)}
                   className="w-full gradient-gold text-primary-foreground font-semibold text-base py-6 rounded-full"
                 >
                   {isSubmitting ? "Submitting..." : "Submit Influencer Registration"}
