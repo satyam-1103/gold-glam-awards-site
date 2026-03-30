@@ -450,8 +450,13 @@ export default function InfluencerMultiStepForm() {
                   Next
                 </Button>
               ) : (
-                <Button type="submit" disabled={isSubmitting} size="lg" className="w-full gradient-gold text-primary-foreground font-semibold text-base py-6 rounded-full">
-                  {isSubmitting ? "Submitting..." : "Submit"}
+                <Button 
+                  type="submit"
+                  size="lg"
+                  disabled={isSubmitting}
+                  className="w-full gradient-gold text-primary-foreground font-semibold text-base py-6 rounded-full"
+                >
+                  {isSubmitting ? "Submitting..." : "Submit Influencer Registration"}
                 </Button>
               )}
             </div>
