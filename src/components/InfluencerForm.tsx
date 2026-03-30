@@ -68,7 +68,7 @@ const steps = [
 export default function InfluencerMultiStepForm() {
   const [step, setStep] = useState(0);
   const [isSubmitted, setSubmitted] = useState(false);
-  const [isLoading, setLoading] = useState(false);
+  const [isSubmitting, setSubmitting] = useState(false);
   const totalSteps = steps.length;
 
   const form = useForm<FormData>({
@@ -109,7 +109,7 @@ export default function InfluencerMultiStepForm() {
   // ================= SUBMIT =================
   const onSubmit = async (data: FormData) => {
     try {
-      setLoading(true);
+      setSubmitting(true);
 
       const payload = {
         full_name: data.fullName,
@@ -165,7 +165,7 @@ export default function InfluencerMultiStepForm() {
       });
     }
     finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
@@ -440,18 +440,18 @@ export default function InfluencerMultiStepForm() {
             {/* BUTTONS */}
             <div className="flex justify-between pt-4">
               {step > 0 && (
-                <Button type="button" variant="outline" onClick={prevStep} disabled={isLoading}>
+                <Button type="button" variant="outline" onClick={prevStep} disabled={isSubmitting}>
                   Back
                 </Button>
               )}
 
               {step < totalSteps - 1 ? (
-                <Button type="button" onClick={nextStep} disabled={isLoading}>
+                <Button type="button" onClick={nextStep} disabled={isSubmitting}>
                   Next
                 </Button>
               ) : (
-                <Button type="submit" disabled={isLoading} size="lg" className="w-full gradient-gold text-primary-foreground font-semibold text-base py-6 rounded-full">
-                  {isLoading ? "Submitting..." : "Submit"}
+                <Button type="submit" disabled={isSubmitting} size="lg" className="w-full gradient-gold text-primary-foreground font-semibold text-base py-6 rounded-full">
+                  {isSubmitting ? "Submitting..." : "Submit"}
                 </Button>
               )}
             </div>
