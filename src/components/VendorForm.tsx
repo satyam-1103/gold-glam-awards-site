@@ -10,7 +10,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { ScrollReveal } from "@/components/ScrollReveal";
 import { toast } from "@/hooks/use-toast";
 import { CheckCircle } from "lucide-react";
-import axios from "axios";
+import { db } from "@/lib/firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 const schema = z.object({
   vendorName: z.string().trim().min(1, "Required").max(100),
@@ -41,16 +42,13 @@ const VendorForm = () => {
       service_type: data.serviceType,
       phone: data.phone,
       email: data.email,
-      instagram_page: data.instagram,
-      amount: 20000 // 🔥 vendor payment
+      instagram_page: data.instagram || "",
+      amount: 20000, // 🔥 vendor payment
+      created_at: serverTimestamp()
     };
 
-    const res = await axios.post(
-      "https://influencers.digitacetechsolutions.com/api/vendors",
-      payload
-    );
-
-    // console.log(res.data);
+    const docRef = await addDoc(collection(db, "vendors"), payload);
+    console.log("Document written with ID: ", docRef.id);
 
     setSubmitted(true);
 
@@ -66,7 +64,7 @@ const VendorForm = () => {
 
     toast({
       title: "Submission Failed ❌",
-      description: error?.response?.data?.message || "Something went wrong",
+      description: error instanceof Error ? error.message : "Something went wrong",
       variant: "destructive",
     });
 
@@ -129,8 +127,8 @@ const VendorForm = () => {
             <FormField control={form.control} name="instagram" render={({ field }) => (
               <FormItem><FormLabel>Instagram Page (Optional)</FormLabel><FormControl><Input placeholder="https://instagram.com/page" {...field} /></FormControl><FormMessage /></FormItem>
             )} />
-            <Button type="submit" size="lg" className="w-full gradient-gold text-primary-foreground font-semibold text-base py-6 rounded-full">
-              Submit Vendor Registration
+            <Button type="submit" size="lg" disabled={loading} className="w-full gradient-gold text-primary-foreground font-semibold text-base py-6 rounded-full">
+              {loading ? "Submitting..." : "Submit Vendor Registration"}
             </Button>
           </form>
         </Form>

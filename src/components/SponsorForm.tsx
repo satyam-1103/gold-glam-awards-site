@@ -11,8 +11,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { ScrollReveal } from "@/components/ScrollReveal";
 import { toast } from "@/hooks/use-toast";
 import { CheckCircle } from "lucide-react";
-import axios from "axios";
-
+import { db } from "@/lib/firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 const SPONSOR_PRICING: Record<string, number> = {
   "Title Sponsor": 300000,      // ₹3L
@@ -59,16 +59,13 @@ const SponsorForm = () => {
       website: data.website,
       industry: data.industry,
       sponsorship_type: data.sponsorshipType,
-      message: data.message,
-      amount: selectedAmount // 🔥 sponsor payment amount
+      message: data.message || "",
+      amount: selectedAmount, // 🔥 sponsor payment amount
+      created_at: serverTimestamp()
     };
 
-    const res = await axios.post(
-      "https://influencers.digitacetechsolutions.com/api/sponsors",
-      payload
-    );
-
-    // console.log(res.data);
+    const docRef = await addDoc(collection(db, "sponsors"), payload);
+    console.log("Document written with ID: ", docRef.id);
 
     setSubmitted(true);
 
@@ -84,7 +81,7 @@ const SponsorForm = () => {
 
     toast({
       title: "Submission Failed ❌",
-      description: error?.response?.data?.message || "Something went wrong",
+      description: error instanceof Error ? error.message : "Something went wrong",
       variant: "destructive",
     });
 
